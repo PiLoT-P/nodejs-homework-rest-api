@@ -72,14 +72,14 @@ const updateContactById = async (req, res, next) => {
 
 const updateFavorite = async (req, res, next) => {
   try {
-    const { contactId } = req.params;
+    const { contactId } = req.params
 
     const contact = await Contact.findByIdAndUpdate(contactId, req.body, { new: true });
 
     if (!contact) {
       throw HttpError(404, "Not found");
     }
-
+    
     res.json(contact);
   } catch (err) {
     console.log(err);
