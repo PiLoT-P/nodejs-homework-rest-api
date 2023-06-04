@@ -11,7 +11,7 @@ const register = async (req, res, next) => {
         const user = await User.findOne({ email });
 
         if (user) {
-            throw HttpError(409, 'User with this email is already exists')
+            throw HttpError(409, 'Email in use')
         }
 
         const hashedPassword = await bcrypt.hash(password, 10) 
@@ -19,8 +19,10 @@ const register = async (req, res, next) => {
         const newUser = await User.create({ password: hashedPassword, email, subscription});
 
         res.status(201).json({
-            email: newUser.email,
-            subscription: newUser.subscription,
+            user: {
+                email,
+                subscription
+            }
         });
     } catch (err) {
         next(err);
@@ -32,6 +34,8 @@ const login = async (req, res, next,) => {
         const { email, password } = req.body;
 
         const user = await User.findOne({ email });
+
+        const { subscription } = user;
 
         if (!user) {
             throw HttpError(401, 'Email or password is wrong');
@@ -52,8 +56,10 @@ const login = async (req, res, next,) => {
         await User.findByIdAndUpdate(user._id, { token });
         res.json({
             token,
-            email,
-            subscription: user.subscription,
+            user: {
+                email,
+                subscription
+            }
         })
     } catch (err) {
         next(err)
