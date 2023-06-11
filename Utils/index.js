@@ -3,5 +3,5 @@ const validateBodyFavorite = require('./validateBodyFavorite')
 
 module.exports = {
     validateBody,
-    validateBodyFavorite
+    validateBodyFavorite,
 }

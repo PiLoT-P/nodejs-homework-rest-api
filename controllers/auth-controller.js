@@ -3,6 +3,12 @@ const { User } = require('../models/user');
 const bcrypt = require('bcrypt');
 const {SECRET_KEY} = process.env
 const jwt = require('jsonwebtoken');
+const gravatar = require('gravatar')
+const fs = require('fs/promises');
+const path = require('path');
+const Jimp = require('jimp')
+
+const avatarDir = path.resolve('public', 'avatars')
 
 const register = async (req, res, next) => {
     try {
@@ -14,14 +20,17 @@ const register = async (req, res, next) => {
             throw HttpError(409, 'Email in use')
         }
 
+        const avatarURL = gravatar.url(email); 
+
         const hashedPassword = await bcrypt.hash(password, 10) 
 
-        const newUser = await User.create({ password: hashedPassword, email, subscription});
+        const newUser = await User.create({ password: hashedPassword, email, subscription, avatarURL});
 
         res.status(201).json({
             user: {
                 email,
-                subscription
+                subscription,
+                avatarURL
             }
         });
     } catch (err) {
@@ -68,11 +77,12 @@ const login = async (req, res, next,) => {
 
 const getCurrent = async (req, res, next) => {
     try {
-        const { email, subscription } = req.user;
+        const { email, subscription, avatarURL } = req.user;
 
         res.json({
             email,
             subscription,
+            avatarURL,
         })
     } catch (err) {
         next(err)
@@ -90,9 +100,37 @@ const logout = async (req, res, next) => {
     }
 }
 
+const updateAvatar = async (req, res, next) => {
+    try {
+        const { path: tempPath, originalname} = req.file;
+        const { _id } = req.user; 
+
+        const resultDir = path.join(avatarDir, `${_id}-${originalname}`);
+        
+        fs.rename(tempPath, resultDir);
+
+        const img = await Jimp.read(resultDir);
+        img.resize(250, 250, Jimp.RESIZE_BEZIER, (err) => {
+            if (err) throw err;
+        })
+            .write(resultDir);
+
+        const avatarURL = path.join('avatars', `${_id}-${originalname}`);
+
+        await User.findByIdAndUpdate(_id, { avatarURL });
+
+        res.json({
+            avatarURL
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
 module.exports = {
     register,
     login,
     getCurrent,
     logout,
+    updateAvatar,
 }
